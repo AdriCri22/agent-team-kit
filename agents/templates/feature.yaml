@@ -1,0 +1,66 @@
+# Ficha de tarea.
+# La escribe un tech lead a partir de la especificación. Si no cabe en una sesión, son dos.
+# Toda tarea cita el criterio de aceptación de la especificación que satisface.
+
+task: "<identificador>"
+title: "<título>"
+spec: "specs/<feature>.spec.yaml"
+acceptance_refs: []      # [AC-1, AC-3]
+owner: "<rol>"
+wave: 1
+priority: "<P0|P1|P2>"
+size: "<S|M|L>"
+depends_on: []
+blocks: []
+
+# Firmas que aplican a la tarea: las fijas de delivery.yaml#closure más las condicionales que
+# correspondan (arquitectura transversal, seguridad, operación, legal). Ids de agents/registry.json.
+# Si un rol no aplica, no se lista: no hay huecos vacíos que parezcan pendientes.
+signatures_required: ["tech-lead-backend", "qa-lead", "product-owner"]
+
+# Categorías de agents/permissions.json que necesita la tarea, con su nivel. El packet las copia y
+# `session.py check` comprueba que no exceden la fila del rol. Si una categoría no hace falta, no
+# aparece: pedir de más obliga a cambiar la matriz con decisión escrita.
+categories: { spec: read, product-code: write, unit-tests: write }
+
+objective: |
+  <Qué cambia para el usuario cuando esto está hecho. Una o dos frases.>
+
+notes: |
+  <Lo mínimo para no preguntar. Referencias a la especificación, no copias.>
+
+surface:
+  write: ["<rutas del write set>"]
+  allowed: ["<rutas que puede leer>"]
+  forbidden: ["<rutas prohibidas>"]
+
+gates:
+  - name: "<tipos o compilación>"
+    command: "<comando>"
+    required: true
+  - name: "<pruebas del dominio>"
+    command: "<comando>"
+    required: true
+  - name: "<accesibilidad>"
+    command: "<cómo se comprueba>"
+    required: "<si toca interfaz>"
+  - name: "<migración reversible>"
+    command: "<cómo se comprueba>"
+    required: "<si toca esquema>"
+  - name: "<escaneo de secretos>"
+    command: "<cómo se comprueba>"
+    required: "<si toca credenciales, datos personales o exposición>"
+
+risks:
+  - risk: "<riesgo>"
+    mitigation: "<mitigación>"
+
+out_of_scope:
+  - "<lo que alguien podría esperar y no se hace>"
+
+definition_of_done:
+  - criterios de aceptación citados con evidencia
+  - gates ejecutados y su resultado en el PR
+  - contratos actualizados si cambian
+  - memoria del rol actualizada
+  - todas las firmas declaradas en signatures_required, con evidencia

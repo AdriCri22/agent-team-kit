@@ -1,0 +1,34 @@
+# Bloque `card:` de un rol.
+#
+# La card NO se escribe: es una proyección del rol. Copia este bloque dentro de
+# agents/roles/<rol>.yaml y ejecuta:
+#
+#   python3 agents/tools/build-cards.py          # regenera agents/cards/*.yaml
+#   python3 agents/tools/build-cards.py --check  # falla si alguna card no coincide
+#
+# El generador añade id, name, layer, reports_to, la ruta del rol, la de la fila de permisos,
+# escalates_to y la línea de entrega: no los repitas aquí.
+#
+# Reglas:
+#   - Nada que no esté en el rol: si necesitas un dato nuevo, va al rol.
+#   - `alarm_signals` es lo único propio de la card: lo que el worker debe reconocer de un vistazo.
+#   - Si el validador dice «cards desactualizadas», no la edites: regenera.
+
+card:
+  mission: |
+    <una o dos frases. Si no cabe en dos, la misión del rol es demasiado larga.>
+
+  decides:
+    - "<3 a 6 decisiones en formato corto>"
+
+  does_not:
+    - "<3 a 5 cosas que no hace>"
+
+  defends:
+    - "<2 o 3 criterios irrenunciables>"
+
+  reading: |
+    <qué lee habitualmente y qué no puede leer según la matriz de permisos>
+
+  alarm_signals:
+    - "<señal de que algo va mal en este rol>"

@@ -1,0 +1,208 @@
+# Política de sesiones.
+#
+# La decisión NO la toma el criterio de quien orquesta: la toma `agents/tools/session.py`,
+# comparando estado observable. Este fichero describe el algoritmo, no una recomendación.
+#
+#   python3 agents/tools/session.py decide --role <rol> --spec <ruta> \
+#     --model <modelo> --domain <dominio> [--packet <packet.json>] \
+#     [--continuation <tarea> | --follow-up] [--expected-turns N] [--profile <perfil>]
+#   → código 0 = REUSE, código 10 = ROTATE, con el motivo exacto.
+#
+# Nada aquí depende de un proveedor concreto: lo que sí depende —caché de prefijo y su coste—
+# vive en `providers.yaml` y es sustituible.
+
+id: sessions-policy
+version: 3
+implementation: "agents/tools/session.py"
+registry: "sessions.json junto a `agents/` (raíz del producto, ignorado por git); la ruta no depende del directorio desde el que se ejecute"
+calibration: "agents/policy/providers.yaml"
+measurement: "agents/policy/measurement.yaml"
+
+concurrency:
+  rule: "un cerrojo por registro (`sessions.json.lock`) serializa open, decide, close y record entre procesos"
+  why: >-
+    El registro se reescribe entero: leer-modificar-escribir. Sin cerrojo, dos procesos que cie-
+    rran a la vez pierden una de las dos actualizaciones, y el journal puede entrelazar líneas.
+  timeout: "10 s; si no se obtiene, el CLI falla con código 1 y un mensaje, no espera indefinidamente"
+  read_only: "state y stats no bloquean: la escritura es atómica (temporal + reemplazo)"
+
+close:
+  rule: "si se pasa `--board`, la tarea tiene que existir en el tablero, ser del rol, estar en curso y apuntar a la misma especificación"
+  why: "el registro no puede contar turnos de una tarea que el tablero no reconoce"
+  codes: "1 si el tablero contradice la sesión; 2 si el tablero no se puede leer"
+
+known_limit: >-
+  El registro mantiene **una** sesión abierta por rol (`find` busca por rol y `open` reemplaza la
+  anterior). Dos workers del mismo rol en paralelo se pisan: una ola usa roles distintos o pone
+  esas tareas en olas consecutivas. Convertirlo en slots (`role#1`, `role#2`) es un cambio de
+  esquema del registro, no de política.
+
+# La memoria sustituye al historial. Tiene que caber en una página o deja de ser memoria y pasa a
+# ser un segundo README que nadie lee. Estas reglas son las que impiden que crezca sin freno.
+memory:
+  path: "memory/<rol>.yaml, una por rol (plantilla en templates/memory.yaml)"
+  max_bytes: 8192
+  check: "`session.py close --memory <ruta>` avisa si falta, si no se actualizó desde que abrió la sesión o si pasa del tope"
+  budget: "una página; si no cabe, lo que sobra es documentación y va a su sitio"
+  keep:
+    - "estado actual en tres líneas: qué está abierto, qué bloquea y qué viene"
+    - "decisiones vigentes, con la referencia de dónde están escritas (ADR o especificación)"
+    - "trampas que siguen costando tiempo"
+    - "contratos vivos: qué publica el rol y de quién depende"
+    - "handoff para la siguiente sesión, diez líneas como máximo"
+  drop:
+    - "lo que ya está en la especificación, el ADR o el tablero: se referencia, no se copia"
+    - "decisiones superadas y el motivo de haberlo estado"
+    - "tareas cerradas, bloqueos resueltos y conversaciones"
+    - "trampas que dejaron de aplicar porque su causa desapareció"
+    - "detalle de implementación que se lee del código cuando hace falta"
+  rule: >-
+    Se reescribe en cada rotación; nunca se añade sin borrar. Si algo importa más allá de este rol
+    o de esta sesión, va al ADR o a la especificación, no a la memoria.
+
+principle: |
+  El estado vive en ficheros; la conversación es una caché derivada. La decisión es doble:
+  primero **legalidad** (¿siguen vigentes los documentos, el modelo y el dominio?), después
+  **economía** (¿sale más barato reutilizar o rotar para esta tarea?). Si alguna dice que no,
+  se rota. Si ambas dicen que sí, **se reutiliza**: el historial ya está pagado y rotar exige
+  escribir un handoff a mano.
+
+reuse_first:
+  rule: "se reutiliza mientras la legalidad y la economía lo permitan; rotar exige un motivo que imprime la herramienta"
+  intent:
+    continuation: "`--continuation <tarea>`: retoque de una tarea que esta sesión ya cerró"
+    follow_up: "`--follow-up`: la tarea siguiente del mismo PR y la misma especificación"
+    none: "sin declaración se reutiliza igual; la intención no es un permiso, es trazabilidad de a qué hilo pertenece la tarea"
+  why: >-
+    Rotar no es gratis: hay que escribir un handoff y la sesión nueva vuelve a leer card, memoria,
+    especificación y contrato. Un equipo que trabaja seguido reutiliza; lo que impide la deriva no
+    es rotar por costumbre, sino comprobaciones que no se pueden saltar.
+  anti_drift:
+    - "huella de los documentos base: si cambia card, rol, especificación o contrato, se rota"
+    - "modelo y dominio obligatorios en `decide`: se comparan con la sesión abierta en cada decisión"
+    - "revisión independiente: `--independent` o `independent: true` en el packet"
+    - "topes derivados de la ventana sobre tareas y turnos **acumulados** de la sesión"
+    - "contexto cargado por encima del tope y edad máxima del perfil"
+    - "economía: reutilizar solo si ahorra el margen declarado"
+    - "deriva observada: si el worker improvisa o la especificación no dice lo que recuerda, se rota aunque quede presupuesto"
+
+inputs_hash:
+  files:
+    - "agents/cards/<rol>.yaml"
+    - "agents/roles/<rol>.yaml"
+    - "<especificación de la funcionalidad>"
+    - "agents/policy/delivery.yaml"
+  rule: "misma huella → documentos vigentes; huella distinta → ROTATE"
+  missing_spec: >-
+    Si la especificación no existe, `open` y `decide` fallan con código 2 en lugar de decidir:
+    una huella calculada sobre un fichero ausente nunca cambia y la sesión quedaría sin ancla.
+
+budget:
+  rule: "no hay umbrales fijos: se derivan de la ventana declarada y del tamaño real de los documentos"
+  window: "`open --window N` en tokens, o `context_window_tokens` del perfil; nadie la consulta"
+  loaded_bytes: "window_tokens × loaded_fraction × bytes_per_token"
+  max_turns: "min(max_turns_ceiling, (loaded_bytes − base) / bytes_per_turn)"
+  max_tasks: "min(max_tasks_ceiling, max_turns / turnos_por_tarea)"
+  turns_per_task: "valor declarado en default_turns_per_task; cambiar el divisor a media de la sesión movería los topes a mitad de trabajo"
+  ceilings: >-
+    max_tasks_ceiling y max_turns_ceiling no miden capacidad sino confianza: una sesión larga
+    arrastra supuestos que ya nadie revisó, aunque le sobre ventana. Con 1 M de contexto el
+    límite deja de ser el espacio y pasa a ser el coste.
+  formulas_in: "providers.yaml#limits: los números y la derivación viven juntos"
+  note: >-
+    El contexto no se declara: se calcula como tamaño real de card, rol, especificación y
+    contrato, más el packet y el coste de los turnos consumidos.
+
+rotate_rules:
+  order: "se evalúan en este orden y gana el primero que se cumpla"
+  rules:
+    - "no hay sesión registrada para el rol"
+    - "la continuación declara una tarea que esta sesión no trabajó"
+    - "cambia el modelo"
+    - "cambia el dominio"
+    - "la tarea exige revisión independiente"
+    - "cambia la especificación"
+    - "cambia la huella de los documentos base"
+    - "la sesión supera la edad máxima del perfil"
+    - "agota las tareas que caben en su ventana"
+    - "agota los turnos acumulados que caben en su ventana"
+    - "el contexto cargado supera el tope derivado de la ventana"
+    - "reutilizar no compensa económicamente"
+
+decision_evidence: >-
+  La decisión no se toma a ojo ni por costumbre: `decide` imprime el coste comparado y el ancla de
+  la huella. Si el orquestador no puede citar el motivo de una rotación, la rotación no existió.
+
+decision_journal:
+  file: "sessions.jsonl, junto al registro"
+  event: "decision, con outcome (REUSE|ROTATE), motivo y especificación"
+  registry_field: "rotate_reason guarda el último motivo; la herramienta lo escribe al rotar y lo limpia al volver a reutilizar"
+  rule: "si no hay evento de decisión, la decisión no existió: no vale el recuerdo de nadie"
+
+# --- economía -------------------------------------------------------------
+# Reutilizar no abarata el siguiente turno: arrastra el historial en todas las peticiones que
+# quedan. Rotar paga una lectura extra y empieza limpio. Cuál gana es una comparación, no un
+# umbral fijo, y sus parámetros vienen del perfil de entorno.
+economy_model:
+  variables:
+    base: "B — tamaño real de card + rol + especificación + contrato"
+    history: "H = turnos × bytes_per_turn (perfil)"
+    turns: "N — turnos esperados; si no se pasa, media observada de la sesión"
+    delta: "D — packet + 1 500 B"
+  formulas:
+    sin_cache:
+      reuse: "N × (B + H + D)"
+      rotate: "(N + 1) × B + N × D"
+      break_even: "N × H < B"
+    con_cache:
+      reuse: "N × (read_factor × (B + H) + D)"
+      rotate: "write_factor × B + N × (read_factor × B + D)"
+      break_even: "N × H < (write_factor + N × read_factor − N) × B / read_factor"
+  parameters_from: "providers.yaml → profile (prompt_cache, read_factor, write_factor, ttl_minutes)"
+  margin: "reuse_margin del perfil: reutilizar debe ser más barato por ese factor"
+  consequence: >-
+    Con caché de prefijo y tareas cortas, reutilizar sale mucho más barato; sin caché o con
+    historiales largos, rotar gana casi siempre. Como N se estima con lo consumido por tarea en
+    la propia sesión, la comparación se calibra sola.
+
+provider_independence:
+  rule: "la política no cambia al cambiar de proveedor; cambia el perfil"
+  default: "conservative, que no asume ninguna capacidad"
+  unknown_profile: "se aplica conservative y se informa en la salida"
+  neutral_units: "la comparación se hace en bytes a ambos lados, no en tokens ni en coste monetario"
+
+reuse_message:
+  include:
+    - "tarea: identificador, título y packet"
+    - "memoria del rol, solo si cambió"
+    - "lista de ficheros tocados, sin contenido"
+    - "ancla de la huella y recordatorio: si la especificación no dice lo que la sesión recuerda, para y pregunta"
+  never:
+    - "los documentos base (card, rol, contrato de entrega)"
+    - "la especificación: si hubiera cambiado, la decisión sería ROTATE y la huella lo probaría"
+    - "resúmenes de memoria que ya están en el fichero"
+
+rotation:
+  before_closing:
+    - "handoff de diez líneas: cerrado, decidido, tocado, verificado, deuda y trampas"
+    - "memoria del rol al día en memory/<rol>.yaml, con poda: lo que ya no es cierto se va"
+    - "session.py open para la sesión nueva"
+  new_session_reads:
+    - "card del rol"
+    - "memory/<rol>.yaml"
+    - "especificación"
+    - "ficha de la tarea"
+    - "contrato de entrega"
+  never: "el historial de la sesión anterior"
+
+anti_hallucination:
+  - "La huella de entrada es la prueba: si cambió un documento, la sesión no puede seguir."
+  - "Al reutilizar, el worker verifica que la especificación sigue diciendo lo que la sesión recuerda; si no, para."
+  - "Datos, resultados de pruebas y credenciales no se recuerdan: se ejecutan o se leen."
+  - "Una duda se pregunta según delivery.yaml#when_unsure; nunca se rellena con lo recordado."
+  - "Si un worker empieza a improvisar, se rota aunque quede presupuesto: la fiabilidad no se negocia."
+
+economy:
+  - "Varias sesiones cortas y limpias son más baratas que una larga contaminada."
+  - "El modelo potente se reserva para arquitectura, seguridad, dinero y revisión."
+  - "Si una tarea necesita leer más de tres documentos base, está mal troceada."

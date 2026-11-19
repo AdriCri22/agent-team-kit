@@ -1,0 +1,85 @@
+# Perfiles de capacidades del entorno de ejecución.
+#
+# El sistema de sesiones no asume nada del proveedor: todo lo que depende de él —caché de
+# prefijo, coste relativo de leerla, caducidad y coste por turno— vive aquí. Cambiar de
+# proveedor es cambiar de perfil, nunca de política ni de roles.
+#
+# El perfil se elige al instanciar el producto: `session.py --profile <nombre>` o, de forma
+# permanente, en el campo `profile` de `sessions.json`.
+
+id: providers
+version: 1
+
+principle: |
+  La política es estable; la calibración es sustituible. Si el perfil se desconoce, se aplica el
+  más conservador: la decisión de rotar sigue siendo correcta, solo se vuelve más exigente para
+  reutilizar.
+
+default_profile: conservative
+
+profiles:
+  conservative:
+    description: "No se asume ninguna capacidad. Reutilizar solo si gana sin caché."
+    prompt_cache: false
+
+  prompt-cache:
+    description: "El entorno cachea prefijos de prompt con coste reducido por lectura."
+    prompt_cache: true
+    read_factor: 0.1
+    write_factor: 1.25
+    ttl_minutes: 30
+
+  prompt-cache-long:
+    description: "Igual que prompt-cache, con ventana de caché amplia."
+    prompt_cache: true
+    read_factor: 0.1
+    write_factor: 1.25
+    ttl_minutes: 120
+
+parameters:
+  # Coste medio declarado por turno de conversación (petición + respuesta + herramientas).
+  # Es una magnitud del trabajo, no del proveedor: sirve para comparar dos opciones entre sí.
+  # Un turno real de agente —lecturas, diffs y salida de gates— ronda los 6 000 B (≈1 500 tokens);
+  # por debajo de eso el historial parece barato y el modelo recomienda reutilizar de más.
+  # Calibrar con `session.py stats` cuando haya datos; el valor de reserva del CLI está aquí.
+  bytes_per_turn: 6000
+  # Conversión de tokens a bytes para poder comparar la ventana del modelo con el tamaño real de
+  # los documentos. No es una medida: es un factor declarado, igual para todos los proveedores.
+  bytes_per_token: 4
+  # Margen mínimo a favor de reutilizar para compensar el riesgo de contexto obsoleto.
+  reuse_margin: 0.9
+  # Ventana de contexto del modelo, en tokens. Se escribe, no se consulta: una cifra que hay que
+  # adivinar no sirve para decidir. `open --window N` la fija por sesión y manda sobre esto.
+  context_window_tokens: 200000
+  # Fracción de la ventana que el sistema se permite ocupar con documentos e historial. El resto
+  # queda para la respuesta, las herramientas y el error de estimación.
+  loaded_fraction: 0.35
+  # Calibración de arranque cuando `stats` todavía no tiene media del rol.
+  default_turns_per_task: 6
+  # Techos de coherencia: no miden capacidad sino confianza. Una sesión larga arrastra supuestos
+  # que ya nadie revisó, aunque sobre ventana. Con 1 M de contexto el límite es el coste, no el
+  # espacio.
+  max_tasks_ceiling: 10
+  max_turns_ceiling: 80
+  max_age_hours: 24
+
+# Los topes no se escriben a mano: se derivan de la ventana declarada y del tamaño real de los
+# documentos. Así el mismo sistema sirve para una ventana de 32 k y para una de 1 M sin cambiar
+# la política ni el rol.
+limits:
+  rule: "cero umbrales fijos; todo sale de la ventana y del tamaño de los ficheros"
+  loaded_bytes: "window_tokens × loaded_fraction × bytes_per_token"
+  max_turns: "min(max_turns_ceiling, (loaded_bytes − base) / bytes_per_turn)"
+  max_tasks: "min(max_tasks_ceiling, max_turns / turnos_por_tarea)"
+  turns_per_task: "valor declarado en default_turns_per_task; no se recalibra con la media de la sesión"
+  base: "tamaño real de card, rol, especificación y contrato de entrega"
+
+fallback: |
+  Perfil desconocido, ausente o incompleto → `conservative`. Ninguna decisión depende de que el
+  proveedor tenga una capacidad concreta; como mucho, la caché abarata reutilizar.
+
+what_is_not_provider_specific:
+  - "Los roles, las cards y los prompts: texto plano con huecos."
+  - "El registro de sesiones y la memoria: ficheros locales."
+  - "La comparación de coste: se hace en bytes, en ambos lados de la balanza."
+  - "El identificador de modelo: cadena libre; cambiarlo fuerza rotación, no reescritura."

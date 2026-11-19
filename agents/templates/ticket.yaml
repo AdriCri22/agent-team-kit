@@ -1,0 +1,42 @@
+# Ticket de defecto.
+# Se guarda en tickets/<id>.yaml: un fichero por defecto, para que dos tickets no choquen.
+# Lo abre quien detecta, lo prioriza qa-lead y lo cierra quien lo verifica, nunca quien lo
+# escribió. Un defecto no se arregla dentro de otra tarea.
+
+ticket: "<identificador>"
+title: "<título>"
+severity: "<S1|S2|S3|S4>"
+reported_by: "<rol>"
+owner: "<rol asignado>"
+environment: "<dónde ocurre>"
+version: "<build, commit o release>"
+status: "<open|in_progress|verify|closed>"
+spec: "specs/<feature>.spec.yaml"
+acceptance_refs: []
+
+what_happens: |
+  <Una frase.>
+
+steps:
+  - "<paso>"
+
+expected: |
+  <Qué debería pasar y qué criterio de la especificación lo exige.>
+
+actual: |
+  <Qué pasa.>
+
+evidence:
+  - "<captura, salida de prueba, artefacto>"
+
+impact: |
+  <A quién afecta, con qué frecuencia y qué se pierde.>
+
+root_cause: |
+  <Cuando se conoce. Si no, vacío; no se rellena con suposiciones.>
+
+closure_criteria:
+  - reproducido por quien reporta
+  - corregido en rama propia con PR
+  - verificado por qa-lead en el entorno afectado
+  - prueba de regresión en la suite e2e si es reparable automáticamente

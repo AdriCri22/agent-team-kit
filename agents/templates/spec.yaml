@@ -1,0 +1,109 @@
+# Especificación de funcionalidad.
+# Copia a specs/<feature>.spec.yaml. La escribe spec-owner con templates/interview.yaml.
+# La lee todo el equipo: de aquí salen tareas, pruebas, vista y textos.
+# Ninguna funcionalidad entra en una ola sin este documento en estado "approved".
+
+feature: feat-000-slug
+title: "<qué hace la funcionalidad, en una frase>"
+version: 1
+status: draft            # draft | review | approved | building | released | superseded
+owner: spec-owner
+requested_by: "<quién la pide>"
+approved_by: []          # [product-owner]
+updated: "<aaaa-mm-dd>"
+
+problem: |
+  <Qué problema resuelve y para quién. En una o dos frases, sin jerga.>
+
+users:
+  - who: "<perfil concreto>"
+    goal: "<qué quiere conseguir>"
+    today: "<cómo lo resuelve ahora>"
+
+scope:
+  in:
+    - "<lo que entra>"
+  out:
+    - "<lo que se decide no hacer, con motivo>"
+
+# Cómo convive con lo que ya existe. Esta sección evita redescubrimientos a mitad de tarea.
+interactions:
+  - with: "<capacidad, módulo o dato existente>"
+    how: "<qué lee, qué escribe, qué cambia para esa parte>"
+    contract: "<contrato afectado y cómo evoluciona>"
+
+flow:
+  - step: 1
+    actor: "<quién>"
+    action: "<qué hace>"
+    result: "<qué obtiene o qué ve>"
+
+states:
+  empty: "<qué se muestra cuando no hay datos>"
+  loading: "<qué se muestra mientras se resuelve>"
+  error: "<qué se muestra al fallar y qué puede hacer la persona>"
+  success: "<qué confirma que salió bien>"
+  denied: "<qué pasa sin permiso>"
+
+edge_cases:
+  - case: "<límite, duplicado, reintento, concurrencia, dato ausente>"
+    expected: "<comportamiento esperado>"
+
+# Cada criterio debe poder comprobarse sin interpretación.
+acceptance:
+  - id: AC-1
+    given: "<estado inicial>"
+    when: "<acción>"
+    then: "<resultado observable>"
+    oracle: "<cómo se sabe que es correcto>"
+
+data:
+  reads:
+    - "<entidad o contrato>"
+  writes:
+    - "<entidad o contrato>"
+  invariants:
+    - "<regla que debe sostenerse siempre>"
+  personal: []           # datos personales implicados, si hay
+  retention: "<cuánto se conservan y cómo se borran>"
+
+security:
+  permissions: "<quién puede hacer qué>"
+  abuse: "<qué uso indebido es plausible y qué lo limita>"
+  notes: "<requisitos exigidos por security-engineer>"
+
+non_functional:
+  accessibility: "<criterio exigible>"
+  performance: "<tiempo o volumen esperado>"
+  i18n: []               # idiomas y qué pasa si falta una traducción
+  availability: "<qué pasa si el sistema falla>"
+
+# Lo que ui-designer y ux-designer necesitan para que la vista sea una consecuencia del texto.
+view:
+  screens:
+    - "<pantalla o vista>"
+  components: []         # piezas del sistema de diseño previstas
+  notes: "<jerarquía, referencias, límites>"
+
+tests:
+  unit:
+    - "<qué regla se prueba junto al código>"
+  e2e:
+    - "<qué flujo se prueba de punta a punta>"
+
+copy:
+  tone: "<registro y tono>"
+  key_messages: []       # mensajes obligatorios, p. ej. errores
+
+metrics:
+  events: []             # eventos que growth-analyst necesita
+
+open_questions:
+  - question: "<pregunta>"
+    owner: "<quién responde>"
+    blocking: true       # si es true, no se aprueba la especificación
+
+decisions: []            # referencias a ADR
+changelog:
+  - date: "<aaaa-mm-dd>"
+    change: "<qué cambió y por qué>"

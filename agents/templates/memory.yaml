@@ -1,0 +1,47 @@
+# Memoria de rol.
+# Vive en memory/<rol>.yaml. Sustituye al historial: se lee al abrir sesión y se reescribe al
+# cerrarla. No es un diario ni un segundo README.
+#
+# PRESUPUESTO
+#   Una página. Tope duro 8 192 B; `session.py close --memory memory/<rol>.yaml` avisa si se pasa,
+#   si no se actualizó desde que abrió la sesión o si el fichero no existe.
+#   Límites por campo: current_state 3 líneas · decisions 5 · traps 5 · handoff 10.
+#
+# REGLA DE PODA: nunca se añade sin borrar.
+#   Se queda:
+#     - el estado actual: qué está abierto, qué bloquea y qué viene;
+#     - decisiones vigentes, con la referencia de dónde están escritas (ADR o especificación);
+#     - trampas que siguen costando tiempo;
+#     - contratos vivos: qué publica el rol y de quién depende;
+#     - el handoff para la siguiente sesión.
+#   Se va:
+#     - lo que ya está en la especificación, el ADR o el tablero: se referencia, no se copia;
+#     - decisiones superadas y el motivo de haberlo estado;
+#     - tareas cerradas, bloqueos resueltos y conversaciones;
+#     - trampas que dejaron de aplicar porque su causa desapareció;
+#     - detalle de implementación que se lee del código cuando hace falta.
+#   Si algo importa más allá de este rol o de esta sesión, va al ADR o a la especificación: la
+#   memoria es para lo que solo este rol sabe y necesita saber otra vez.
+
+role: "<rol>"
+updated: "<aaaa-mm-dd>"
+
+current_state: |
+  <En qué está el rol: tareas abiertas, bloqueos y qué viene después. Tres líneas.>
+
+decisions:
+  - decision: "<decisión vigente>"
+    why: "<motivo>"
+    written_at: "<documento, ADR o especificación>"
+
+traps:
+  - "<algo que ya costó tiempo una vez y no debería costarlo otra>"
+
+live_contracts:
+  publishes:
+    - "<qué produce y dónde vive>"
+  consumes:
+    - "<de quién depende y qué espera>"
+
+handoff:
+  - "<lo que la siguiente sesión debe saber nada más arrancar; si no hay nada, 'nada'>"

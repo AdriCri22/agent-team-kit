@@ -1,0 +1,34 @@
+# Decisión de arquitectura.
+# Una decisión por documento. No se edita para cambiar de opinión: se marca sustituida y se
+# escribe otra.
+
+adr: ADR-000
+title: "<título corto>"
+status: "<proposed|accepted|superseded|rejected>"
+superseded_by: null
+date: "<aaaa-mm-dd>"
+decided_by: software-architect
+consulted: ["<roles>"]
+related_specs: []
+
+context: |
+  <Qué fuerza real obliga a decidir: restricción, volumen, coste, obligación legal o riesgo.
+  Qué pasa si no se decide.>
+
+decision: |
+  <Qué se decide, en presente y sin ambigüedad. Si algo no se decide, decirlo.>
+
+consequences:
+  good:
+    - "<consecuencia>"
+  watch:
+    - "<consecuencia y qué la compensa>"
+
+alternatives:
+  - option: "<alternativa>"
+    rejected_because: "<motivo en una frase>"
+
+compliance_check:
+  - "<comprobación objetiva: prueba, revisión o automatismo>"
+
+review_condition: "<fecha, hito o circunstancia que obliga a revisarla>"

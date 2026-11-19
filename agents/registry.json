@@ -1,0 +1,375 @@
+{
+  "$schema_version": 2,
+  "_doc": "Índice máquina del equipo. Fuente para orquestadores y herramientas. Los detalles viven en agents/roles/<rol>.yaml; si algo discrepa, manda el rol y este índice se corrige. reports_to null significa que el rol responde directamente a quien encarga el producto.",
+  "actors": [
+    "quien-encarga",
+    "usuarios"
+  ],
+  "actors_doc": "Interlocutores que no son roles del equipo. Se citan en consumes como 'external:<actor>'. Añadir uno es una decisión, no un atajo.",
+  "layers": [
+    {
+      "id": "direction",
+      "name": "Dirección",
+      "purpose": "orden, reparto y cierre del trabajo"
+    },
+    {
+      "id": "governance",
+      "name": "Gobierno",
+      "purpose": "forma del equipo y coherencia de la estructura"
+    },
+    {
+      "id": "discovery",
+      "name": "Descubrimiento",
+      "purpose": "entender la necesidad y proponer el equipo"
+    },
+    {
+      "id": "definition",
+      "name": "Definición",
+      "purpose": "qué se construye, cómo se especifica y cómo se ve"
+    },
+    {
+      "id": "engineering",
+      "name": "Ingeniería",
+      "purpose": "estructura, datos y construcción"
+    },
+    {
+      "id": "assurance",
+      "name": "Aseguramiento",
+      "purpose": "calidad, verificación y seguridad"
+    },
+    {
+      "id": "operations",
+      "name": "Operación",
+      "purpose": "entornos, despliegue y observabilidad"
+    },
+    {
+      "id": "communication",
+      "name": "Comunicación",
+      "purpose": "texto, mensaje público y medición"
+    }
+  ],
+  "roles": [
+    {
+      "id": "orchestrator",
+      "name": "Orchestrator",
+      "layer": "direction",
+      "reports_to": null,
+      "instances": "one"
+    },
+    {
+      "id": "org-architect",
+      "name": "Org Architect",
+      "layer": "governance",
+      "reports_to": null,
+      "instances": "one"
+    },
+    {
+      "id": "structure-steward",
+      "name": "Structure Steward",
+      "layer": "governance",
+      "reports_to": "software-architect",
+      "instances": "one"
+    },
+    {
+      "id": "legal-officer",
+      "name": "Legal Officer",
+      "layer": "governance",
+      "reports_to": null,
+      "instances": "one"
+    },
+    {
+      "id": "discovery-lead",
+      "name": "Discovery Lead",
+      "layer": "discovery",
+      "reports_to": null,
+      "instances": "one"
+    },
+    {
+      "id": "product-owner",
+      "name": "Product Owner",
+      "layer": "definition",
+      "reports_to": null,
+      "instances": "one"
+    },
+    {
+      "id": "spec-owner",
+      "name": "Spec Owner",
+      "layer": "definition",
+      "reports_to": "product-owner",
+      "instances": "one"
+    },
+    {
+      "id": "ux-designer",
+      "name": "UX Designer",
+      "layer": "definition",
+      "reports_to": "product-owner",
+      "instances": "one"
+    },
+    {
+      "id": "ui-designer",
+      "name": "UI Designer",
+      "layer": "definition",
+      "reports_to": "ux-designer",
+      "instances": "one"
+    },
+    {
+      "id": "software-architect",
+      "name": "Software Architect",
+      "layer": "engineering",
+      "reports_to": null,
+      "instances": "one"
+    },
+    {
+      "id": "tech-lead-backend",
+      "name": "Tech Lead (backend)",
+      "layer": "engineering",
+      "reports_to": "software-architect",
+      "instances": "one"
+    },
+    {
+      "id": "tech-lead-frontend",
+      "name": "Tech Lead (frontend)",
+      "layer": "engineering",
+      "reports_to": "software-architect",
+      "instances": "one"
+    },
+    {
+      "id": "backend-engineer",
+      "name": "Backend Engineer",
+      "layer": "engineering",
+      "reports_to": "tech-lead-backend",
+      "instances": "one"
+    },
+    {
+      "id": "frontend-engineer",
+      "name": "Frontend Engineer",
+      "layer": "engineering",
+      "reports_to": "tech-lead-frontend",
+      "instances": "one"
+    },
+    {
+      "id": "database-engineer",
+      "name": "Database Engineer",
+      "layer": "engineering",
+      "reports_to": "tech-lead-backend",
+      "instances": "one"
+    },
+    {
+      "id": "performance-engineer",
+      "name": "Performance Engineer",
+      "layer": "engineering",
+      "reports_to": "software-architect",
+      "instances": "one"
+    },
+    {
+      "id": "payments-engineer",
+      "name": "Payments Engineer",
+      "layer": "engineering",
+      "reports_to": "tech-lead-backend",
+      "instances": "one"
+    },
+    {
+      "id": "mobile-engineer",
+      "name": "Mobile Engineer",
+      "layer": "engineering",
+      "reports_to": "tech-lead-frontend",
+      "instances": "one"
+    },
+    {
+      "id": "ml-engineer",
+      "name": "ML Engineer",
+      "layer": "engineering",
+      "reports_to": "tech-lead-backend",
+      "instances": "one"
+    },
+    {
+      "id": "domain-owner",
+      "name": "Domain Owner",
+      "layer": "engineering",
+      "reports_to": "tech-lead-backend",
+      "reports_to_note": "según la disciplina dominante del dominio",
+      "instances": "per-domain"
+    },
+    {
+      "id": "qa-lead",
+      "name": "QA Lead",
+      "layer": "assurance",
+      "reports_to": "product-owner",
+      "instances": "one"
+    },
+    {
+      "id": "qa-automation",
+      "name": "QA Automation",
+      "layer": "assurance",
+      "reports_to": "qa-lead",
+      "instances": "one"
+    },
+    {
+      "id": "security-engineer",
+      "name": "Security Engineer",
+      "layer": "assurance",
+      "reports_to": "software-architect",
+      "instances": "one"
+    },
+    {
+      "id": "devops-engineer",
+      "name": "DevOps Engineer",
+      "layer": "operations",
+      "reports_to": "software-architect",
+      "instances": "one"
+    },
+    {
+      "id": "content-writer",
+      "name": "Content Writer",
+      "layer": "communication",
+      "reports_to": "product-owner",
+      "instances": "one"
+    },
+    {
+      "id": "technical-writer",
+      "name": "Technical Writer",
+      "layer": "communication",
+      "reports_to": "product-owner",
+      "instances": "one"
+    },
+    {
+      "id": "communications-lead",
+      "name": "Communications Lead",
+      "layer": "communication",
+      "reports_to": "product-owner",
+      "instances": "one"
+    },
+    {
+      "id": "growth-analyst",
+      "name": "Growth Analyst",
+      "layer": "communication",
+      "reports_to": "product-owner",
+      "instances": "one"
+    }
+  ],
+  "flows": {
+    "new_product": {
+      "description": "De una necesidad a un equipo con producto en marcha.",
+      "steps": [
+        {
+          "role": "discovery-lead",
+          "output": "brief, roster propuesto y dominios"
+        },
+        {
+          "role": "org-architect",
+          "output": "roles nuevos o divididos que el equipo necesita"
+        },
+        {
+          "role": "product-owner",
+          "output": "alcance y criterios de la primera entrega"
+        },
+        {
+          "role": "software-architect",
+          "output": "decisiones estructurales y contratos"
+        },
+        {
+          "role": "devops-engineer",
+          "output": "entorno reproducible e integración"
+        },
+        {
+          "role": "qa-lead",
+          "output": "modelo de cobertura y criterio de listo"
+        },
+        {
+          "role": "security-engineer",
+          "output": "modelo de amenazas y requisitos de datos"
+        },
+        {
+          "role": "orchestrator",
+          "output": "primera ola con tareas, dueños y packets"
+        }
+      ]
+    },
+    "feature": {
+      "description": "De una idea a algo entregado y aceptado.",
+      "steps": [
+        {
+          "role": "product-owner",
+          "output": "intención, valor y prioridad"
+        },
+        {
+          "role": "spec-owner",
+          "output": "specs/<feature>.spec.yaml aprobada"
+        },
+        {
+          "role": "ux-designer",
+          "output": "flujo y estados en la especificación"
+        },
+        {
+          "role": "ui-designer",
+          "output": "vista y piezas del sistema de diseño"
+        },
+        {
+          "role": "software-architect",
+          "output": "restricciones y contratos afectados"
+        },
+        {
+          "role": "tech-lead-backend",
+          "output": "tareas de datos y servidor"
+        },
+        {
+          "role": "structure-steward",
+          "output": "superficies declaradas y documentación al día"
+        },
+        {
+          "role": "tech-lead-frontend",
+          "output": "tareas de interfaz"
+        },
+        {
+          "role": "orchestrator",
+          "output": "ola, ramas y packets"
+        },
+        {
+          "role": "qa-lead",
+          "output": "verificación contra criterios de aceptación"
+        },
+        {
+          "role": "content-writer",
+          "output": "textos definitivos"
+        },
+        {
+          "role": "technical-writer",
+          "output": "guía y referencia de la funcionalidad"
+        },
+        {
+          "role": "communications-lead",
+          "output": "nota de entrega"
+        },
+        {
+          "role": "product-owner",
+          "output": "aceptación"
+        }
+      ]
+    },
+    "defect": {
+      "description": "De un fallo observado a un ticket cerrado.",
+      "steps": [
+        {
+          "role": "qa-lead",
+          "output": "ticket con severidad y pasos"
+        },
+        {
+          "role": "tech-lead-backend",
+          "output": "asignación y rama"
+        },
+        {
+          "role": "qa-automation",
+          "output": "prueba de regresión que falla antes y pasa después"
+        },
+        {
+          "role": "qa-lead",
+          "output": "verificación"
+        },
+        {
+          "role": "orchestrator",
+          "output": "cierre y actualización del tablero"
+        }
+      ]
+    }
+  }
+}

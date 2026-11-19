@@ -1,0 +1,42 @@
+# Equipo propuesto.
+# Lo emite discovery-lead al cerrar la entrevista y lo confirma quien encarga el producto.
+# Es la traducción del brief a "qué expertos hay, cuáles no y qué falta por crear".
+
+product: "<nombre del producto>"
+date: "<aaaa-mm-dd>"
+proposed_by: discovery-lead
+confirmed_by: "<persona que encarga>"
+
+roles:
+  instantiate:
+    - id: "<rol del catálogo>"
+      why: "<qué necesidad del brief cubre>"
+      dedication: "<full|part>"
+  skip:
+    - id: "<rol del catálogo>"
+      why: "<por qué este producto no lo necesita todavía>"
+  create:
+    - id: "<nuevo-rol-en-kebab-case>"
+      why: "<necesidad concreta que el catálogo no cubre>"
+      layer: "<capa>"
+      reports_to: "<rol>"
+      decides: ["<decisiones que asumiría>"]
+      knowledge: ["<juicio que se le supone>"]
+      escalates_to: "<rol>"
+      requested_from: org-architect     # discovery-lead propone; org-architect lo diseña y lo registra
+      entry_point: "agents/templates/role.yaml"
+
+domains:
+  - name: "<dominio>"
+    owner: "domain-owner:<dominio>"
+    why: "<qué capacidad funcional acota>"
+
+flow:
+  description: "<orden de trabajo en este producto concreto>"
+  steps:
+    - "<rol> produce <artefacto>"
+    - "<rol> revisa <artefacto>"
+
+open_needs:
+  - need: "<necesidad detectada sin cobertura>"
+    proposal: "<crear rol X, contratar, o posponer>"

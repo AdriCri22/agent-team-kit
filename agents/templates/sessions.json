@@ -1,0 +1,24 @@
+{
+  "$schema_version": 1,
+  "_doc": "Registro de sesiones por rol. Lo mantiene orchestrator con agents/tools/session.py según agents/policy/sessions.yaml. Vive junto a `agents/`, no en el directorio desde el que se ejecuta el CLI, y se serializa entre procesos con un cerrojo hermano (`sessions.json.lock`). El campo profile fija la calibración de coste (agents/policy/providers.yaml); si falta, se aplica la conservadora.",
+  "_entry_format": {
+    "role": "rol de agents/registry.json",
+    "model": "identificador libre; cambiarlo fuerza rotación",
+    "session_id": "identificador de la sesión",
+    "domain": "dominio funcional",
+    "spec": "especificación cargada",
+    "profile": "perfil de agents/policy/providers.yaml",
+    "window_tokens": 200000,
+    "inputs_hash": "huella SHA-256 de card, rol, especificación y contrato",
+    "tasks_closed": ["identificadores cerrados en esta sesión"],
+    "turns": "turnos acumulados de la sesión; el journal manda sobre lo declarado al cerrar",
+    "turns_source": "journal | declared",
+    "loaded_bytes": 0,
+    "opened_at": "<aaaa-mm-ddThh:mm:ssZ>",
+    "updated_at": "<aaaa-mm-ddThh:mm:ssZ>",
+    "rotate_reason": "último motivo que imprimió decide al rotar; se limpia al volver a reutilizar"
+  },
+  "profile": "conservative",
+  "updated_at": null,
+  "sessions": []
+}

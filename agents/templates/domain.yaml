@@ -1,0 +1,33 @@
+# Dominio.
+# Un dominio es una capacidad funcional acotada con dueño propio. De aquí sale cada
+# instancia de domain-owner. Si no se explica sin nombrar tres módulos, no es un dominio.
+
+domain: "<nombre>"
+purpose: "<una frase>"
+owner: "domain-owner:<nombre>"
+reports_to: "<tech lead de su disciplina>"
+
+owns:
+  data: ["<entidades, tablas o documentos>"]
+  rules: ["<reglas y dónde viven>"]
+  surfaces: ["<carpetas, contratos, tablas>"]
+
+depends_on:
+  - domain: "<otro dominio>"
+    through: "<contrato>"
+
+depended_by:
+  - domain: "<otro dominio>"
+    through: "<contrato>"
+
+obligations:
+  accessibility: "<si aplica>"
+  compliance: "<si aplica>"
+  deadlines: "<si aplica>"
+
+definition_of_done:
+  - reglas propias con prueba que las respalda
+  - invariantes sostenidos en concurrencia
+  - consumidores que no conocen el interior
+  - superficie reflejada en el mapa de dominios
+  - sustituible sin reescribir el resto

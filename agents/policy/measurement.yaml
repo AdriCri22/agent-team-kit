@@ -1,0 +1,92 @@
+# Protocolo de medición.
+#
+# Cómo se obtienen los datos que alimentan la decisión de sesión. Regla: no se pide telemetría a
+# ningún editor ni a ningún modelo; se mide lo que el propio trabajo deja escrito.
+
+id: measurement
+version: 2
+implementation: "agents/tools/session.py (record, close, stats, verify)"
+
+principle: |
+  El sistema no depende de cómo cuente tokens un editor ni un proveedor. Mide tres cosas que
+  existen siempre: lo que el agente declara al cerrar cada hito, lo que el repositorio registra en
+  el diff y el tamaño real de los documentos. La cuarta entrada —ventana del modelo y coste por
+  turno— es un parámetro declarado en providers.yaml, no una medida.
+
+why_not_ide_telemetry:
+  - "Cada entorno expone métricas distintas o ninguna: no hay denominador común."
+  - "Cada proveedor cuenta tokens a su manera; sus números no son comparables entre sí."
+  - "La telemetría no es estable entre versiones y no se puede reproducir ni auditar."
+  - "Si dependes de ella, cambiar de entorno rompe la decisión sin avisar."
+
+# Fuentes, en orden de preferencia. Las tres primeras existen en cualquier entorno; la cuarta es
+# una declaración del producto, no una medición.
+sources:
+  declared:
+    what: "journal JSONL que el propio agente escribe con `session.py record`"
+    gives: ["turnos", "acciones", "bytes leídos y escritos"]
+    cost: "una llamada a un comando por hito, no por mensaje"
+  derived:
+    what: "estado del repositorio: `git diff` del trabajo de la tarea"
+    gives: ["ficheros tocados", "bytes añadidos y borrados"]
+    note: "es la única fuente que no puede mentir: o está en el diff o no ocurrió"
+  computed:
+    what: "documentos reales más turnos × coste por turno"
+    gives: ["contexto cargado: la misma cifra en close, decide y state"]
+    note: "se calcula al vuelo; los bytes leídos se guardan aparte, como auditoría"
+  declared_limits:
+    what: "ventana del modelo, coste por turno y techos, en providers.yaml"
+    gives: ["tope de contexto", "turnos y tareas que caben en una sesión"]
+    note: "las fórmulas y los números viven juntos en providers.yaml#limits"
+
+journal:
+  file: "sessions.jsonl (junto al registro; local, ignorado por git)"
+  format: "JSONL: un objeto por línea, append-only"
+  events:
+    turn:
+      fields: ["role", "session", "n"]
+      meaning: "un intercambio del agente con el modelo"
+    read:
+      fields: ["role", "session", "path", "bytes"]
+      meaning: "documento cargado en contexto"
+    write:
+      fields: ["role", "session", "path", "bytes"]
+      meaning: "fichero modificado"
+    note:
+      fields: ["role", "session", "text"]
+      meaning: "cualquier otra observación"
+    decision:
+      fields: ["role", "session", "spec", "outcome", "reason"]
+      meaning: "decisión de sesión: REUSE o ROTATE con su motivo; la escribe `session.py decide`"
+  writer: "el agente, con `session.py record`; las decisiones las escribe `session.py decide`"
+
+rules:
+  precedence: "journal (lo registrado) → declarado al cerrar → derivado de git → calculado → límites declarados"
+  sanity_turnos: >
+    Un turno no puede durar menos de ~2 s: si lo declarado supera `segundos_transcurridos / 2 + 1`,
+    se emite aviso y se usa lo declarado, porque el registro manda sobre la heurística. El aviso
+    solo aplica a turnos declarados: los del journal llevan marca de tiempo propia.
+  close_semantics: >
+    `close --turns N` declara los turnos de **esa** tarea, no el total; el registro guarda el
+    acumulado de la sesión. Si hay turnos en el journal, mandan los del journal. Cerrar dos veces
+    la misma tarea no suma dos veces ni duplica el cierre.
+  cross_checks: >
+    `close --board` compara tarea, dueño, estado y especificación antes de escribir. `board.py
+    lint` valida cada packet de una tarea activa (rol, especificación y categorías contra la
+    matriz) además de estados, firmas y solapes. Las dos puertas usan la misma comprobación de
+    permisos (`agents/tools/authz.py`).
+  sin_journal: >
+    Si no hay journal, `close --turns N` es la única entrada y se acepta tal cual; la decisión
+    sigue funcionando, solo pierde precisión.
+  audit_del_trabajo: >
+    `verify --packet` compara el diff real con el write set del packet: ficheros fuera del
+    conjunto declarado son contaminación de otra tarea o escritura sin dueño. Compara la rama
+    del PR (`--branch`, por defecto la actual), incluye lo que no está confirmado y trata un diff
+    vacío como error: verificarse a sí mismo en la rama base no verifica nada. Los patrones son
+    de ruta: `*` no cruza `/` y `**` sí, para que `src/*.ts` no autorice `src/a/b.ts`.
+
+what_the_system_reports:
+  - "turnos y bytes por tarea y por rol (stats)"
+  - "tope de contexto, turnos y tareas derivados de la ventana (state, decide)"
+  - "coste comparado de reutilizar frente a rotar (decide)"
+  - "desviación entre lo declarado y el diff real (verify)"

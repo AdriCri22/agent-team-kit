@@ -1,0 +1,26 @@
+# Ignorado por git. Este repositorio no contiene producto.
+
+.DS_Store
+Thumbs.db
+*.swp
+
+# Estado local de una instanciación. Las rutas van ancladas a la raíz: el patrón suelto
+# `sessions.json` también ignoraba la plantilla agents/templates/sessions.json.
+.orchestrator/
+worktrees/
+/sessions.json
+/sessions.jsonl
+/sessions.json.lock
+/sessions.json.*.tmp
+
+# Entorno y secretos
+.env
+.env.*
+.dev.vars
+
+# Artefactos de ejecución y pruebas
+artifacts/
+coverage/
+test-results/
+__pycache__/
+*.pyc

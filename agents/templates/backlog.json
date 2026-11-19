@@ -1,0 +1,41 @@
+{
+  "_doc": "Tablero de planificación. Solo lo escribe orchestrator. Estados: todo, in_progress, blocked, review, done. Los defectos no viven aquí: viven en tickets/<id>.yaml y entran como tareas con rama fix/<ticket>-slug cuando el orquestador los admite en una ola.",
+  "_signature_rule": "signatures_required lista los roles firmantes que aplican a esta tarea: las fijas de agents/policy/delivery.yaml#closure más las condicionales que declare la ficha. Si un rol no aplica, no aparece. signatures tiene un hueco por cada rol requerido: null = pendiente, texto = referencia a la evidencia. status done exige todos los huecos llenos y ninguna firma del autor del trabajo.",
+  "_task_format": {
+    "task": "identificador estable",
+    "title": "una frase",
+    "spec": "specs/<feature>.spec.yaml",
+    "owner": "rol",
+    "status": "todo | in_progress | blocked | review | done",
+    "wave": 0,
+    "deps": ["identificadores que deben estar done"],
+    "branch": "agent/<rol>/<tarea>-slug",
+    "pr": "url o null",
+    "packet": "packets/<tarea>.json o null; board.py lint comprueba que existe y que no solapa",
+    "signatures_required": ["firmantes que aplican; ids de agents/registry.json"],
+    "signatures": { "<rol requerido>": "null = pendiente | referencia a la evidencia" },
+    "notes": "una línea, sin historias"
+  },
+  "updated_at": "<aaaa-mm-dd>",
+  "tasks": [
+    {
+      "task": "<ejemplo>",
+      "title": "<título de ejemplo; bórralo al instanciar>",
+      "spec": "specs/<feature>.spec.yaml",
+      "owner": "<rol>",
+      "status": "todo",
+      "wave": 0,
+      "deps": [],
+      "branch": null,
+      "pr": null,
+      "packet": null,
+      "signatures_required": ["tech-lead-frontend", "qa-lead", "product-owner"],
+      "signatures": {
+        "tech-lead-frontend": null,
+        "qa-lead": null,
+        "product-owner": null
+      },
+      "notes": ""
+    }
+  ]
+}

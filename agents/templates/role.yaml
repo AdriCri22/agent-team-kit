@@ -1,0 +1,73 @@
+# Plantilla de rol.
+# Copia a agents/roles/<rol>.yaml. Describe una capacidad permanente, nunca un producto.
+# Al crear un rol hay que tocar cuatro sitios: rol, card, registry.json y permissions.json.
+
+id: "<rol-en-kebab-case>"
+name: "<Nombre legible>"
+layer: "<direction|governance|discovery|definition|engineering|assurance|operations|communication>"
+reports_to: "<rol o null>"
+coordinates: ["<ids de rol>"]
+# `reviews` y `coordinates` son referencias resueltas por el validador: id de rol, patrón que case
+# con alguno (`tech-lead-*`) o `*`, que solo vale en `reviews`. No se escribe prosa.
+reviews: ["<ids de rol, patrón o *>"]
+instances: "<one|per-domain|per-feature>"
+
+mission: |
+  <Qué capacidad aporta y por qué existe el rol. Dos o tres frases, sin nombrar producto.>
+
+decides:
+  - "<decisión que solo este rol puede tomar>"
+
+does_not:
+  - "<lo que alguien podría esperar y no le corresponde>"
+
+defends:
+  - "<criterio que defiende incluso cuando hay prisa>"
+
+# Conocimientos que se le suponen al rol para decidir con criterio. No es una lista de
+# tecnologías: es el tipo de juicio que se espera.
+knowledge:
+  - "<campo de conocimiento>"
+
+# A quién pregunta cuando algo se sale de su alcance. El resto de dudas se resuelven por
+# tipo según agents/policy/delivery.yaml#when_unsure.
+escalates_to: "<rol o quien-encarga>"
+
+publishes:
+  - name: "<contrato o artefacto>"
+    shape: "<forma concreta: informe, esquema, checklist, decisión>"
+
+# `from` es siempre una lista. Cada elemento es un id de rol, un patrón que case con alguno
+# (`tech-lead-*`), `*` (todos los roles) o `external:<actor>` declarado en registry.json#actors
+# (usuarios, quien encarga). Nada de frases: el validador no puede resolverlas.
+consumes:
+  - from: ["<rol>", "<rol>"]
+    what: "<qué necesita y para qué>"
+
+definition_of_done:
+  - "<condición comprobable para dar el trabajo por bueno>"
+
+# Proyección para la card. La genera agents/tools/build-cards.py: no escribas la card.
+card:
+  mission: |
+    <una o dos frases>
+  decides:
+    - "<3 a 6 decisiones en corto>"
+  does_not:
+    - "<3 a 5 cosas que no hace>"
+  defends:
+    - "<2 o 3 criterios irrenunciables>"
+  reading: |
+    <qué lee y qué no puede leer según la matriz de permisos>
+  alarm_signals:
+    - "<señal de alarma>"
+
+# --- checklist al crear un rol ---
+# 1. agents/roles/<rol>.yaml  (este fichero, incluido el bloque card)
+# 2. python3 agents/tools/build-cards.py  (genera la card; nunca la escribas a mano)
+# 3. agents/registry.json     (entrada en roles: id, name, layer, reports_to, instances)
+# 4. agents/permissions.json  (fila en matrix con las trece categorías)
+# 5. Comprobar que la jerarquía no crea ciclos y que reports_to existe.
+# 6. Si el rol viene de una necesidad concreta, dejarlo escrito en el roster del producto.
+# 7. Justificar por qué no basta con dividir un rol existente (agents/roles/org-architect.yaml#split_test).
+# 8. Ejecutar python3 agents/tools/validate.py.

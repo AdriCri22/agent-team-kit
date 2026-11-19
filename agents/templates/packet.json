@@ -1,0 +1,42 @@
+{
+  "_doc": "Packet de tarea. Lo emite orchestrator y lo consume un solo worker. Deriva las rutas de agents/permissions.json y de templates/feature.yaml: nunca amplía permisos. `categories` declara qué nivel necesita la tarea por categoría; `session.py check` comprueba que no excede la fila del rol. `independent: true` obliga a rotar la sesión: la tarea la revisa alguien que no la escribió.",
+  "task": "<identificador>",
+  "title": "<título>",
+  "role": "<rol>",
+  "independent": false,
+  "spec": "specs/<feature>.spec.yaml",
+  "acceptance_refs": ["AC-1"],
+  "session": {
+    "mode": "new",
+    "id": null
+  },
+  "read": {
+    "must": [
+      "agents/cards/<rol>.yaml",
+      "memory/<rol>.yaml",
+      "agents/policy/delivery.yaml",
+      "specs/<feature>.spec.yaml",
+      "<ficha de la tarea>"
+    ],
+    "allowed": [
+      "<rutas que la matriz de permisos permite a este rol>"
+    ],
+    "forbidden": [
+      "<categorías que la matriz prohíbe, materializadas en rutas>"
+    ]
+  },
+  "write": [
+    "<rutas exactas del write set>"
+  ],
+  "_pattern_rule": "Los patrones son de ruta: `*` no cruza `/`, `**` sí. `src/*.ts` no autoriza `src/a/b.ts`.",
+  "categories": {
+    "<categoría de agents/permissions.json>": "<read|write>"
+  },
+  "gates": [
+    { "name": "<gate>", "command": "<comando>", "required": true }
+  ],
+  "out_of_scope": [
+    "<lo que no se toca en esta tarea>"
+  ],
+  "handoff": "bloque de agents/policy/delivery.yaml"
+}

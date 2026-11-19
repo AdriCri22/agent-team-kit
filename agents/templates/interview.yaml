@@ -1,0 +1,100 @@
+# Baterías de preguntas para entrevistar.
+# Las usa discovery-lead para el producto y spec-owner para cada funcionalidad.
+# Regla: una pregunta cerrada vale más que cinco abiertas; pide ejemplos y números.
+
+style:
+  - Una pregunta a la vez; agrupa solo lo que se responde igual.
+  - Pide ejemplos concretos: «la última vez que pasó, ¿qué hiciste?».
+  - No aceptes adjetivos sin medida: «rápido» es una pregunta, no una respuesta.
+  - Pregunta siempre por el caso raro: «¿y si…?».
+  - Cierra cada bloque con: «¿qué me estoy dejando?».
+
+product:
+  - id: need
+    question: "¿Qué problema resolverías mañana si pudieras elegir uno?"
+    looks_for: una frase en palabras del usuario, no una lista de funcionalidades
+  - id: users
+    question: "¿Quién lo va a usar exactamente, y en qué momento del día?"
+    looks_for: perfiles concretos, no «todo el mundo»
+  - id: alternative
+    question: "¿Cómo lo resuelve hoy esa persona?"
+    looks_for: la alternativa real que hay que superar
+  - id: value
+    question: "¿Qué cambia para esa persona cuando esto funciona?"
+    looks_for: un cambio observable, no una sensación
+  - id: scope
+    question: "¿Qué tiene que estar en la primera versión y qué puede esperar?"
+    looks_for: corte explícito, no una lista infinita
+  - id: not_scope
+    question: "¿Qué esperarías que hiciera y sin embargo no va a hacer?"
+    looks_for: no-alcance escrito
+  - id: conventions
+    question: "¿Cómo se manejan dinero, fechas, idiomas y datos personales?"
+    looks_for: reglas cerradas; si no las hay, se proponen y se confirman
+  - id: legal
+    question: "¿Hay alguna obligación legal o contractual que debamos cumplir?"
+    looks_for: cita literal, con fuente
+  - id: metrics
+    question: "¿Cómo sabremos en tres meses que ha servido?"
+    looks_for: métrica con definición, no una impresión
+  - id: constraints
+    question: "¿Qué no podemos cambiar: sistemas, plazos, equipo, presupuesto?"
+    looks_for: restricciones reales
+  - id: risk
+    question: "¿Qué haría fracasar esto aunque esté bien construido?"
+    looks_for: riesgo de producto, no solo técnico
+  - id: acceptance_rights
+    question: "¿Quién acepta el resultado y con qué criterio?"
+    looks_for: una persona con nombre
+
+feature:
+  - id: intent
+    question: "¿Qué tiene que poder hacer la persona, contado como una acción?"
+    looks_for: un verbo y un resultado
+  - id: steps
+    question: "¿Cómo lo hace hoy, paso a paso? ¿Y cómo debería hacerlo?"
+    looks_for: el flujo real, con sus atajos
+  - id: inputs
+    question: "¿Qué información hace falta y quién la tiene?"
+    looks_for: campos, fuentes y quién puede aportarlos
+  - id: existing
+    question: "¿Con qué parte de lo que ya existe tiene que encajar?"
+    looks_for: dependencias reales, no intuiciones
+  - id: rules
+    question: "¿Qué reglas no se pueden saltar nunca?"
+    looks_for: invariantes; las de dinero, permisos y fechas se citan literales
+  - id: edge_empty
+    question: "¿Y si no hay nada que mostrar?"
+    looks_for: comportamiento del estado vacío
+  - id: edge_error
+    question: "¿Qué debería ver la persona si algo falla?"
+    looks_for: mensaje útil y siguiente paso
+  - id: edge_limits
+    question: "¿Qué límites hay: cantidad, tamaño, tiempo, frecuencia?"
+    looks_for: números concretos
+  - id: edge_duplicate
+    question: "¿Qué pasa si la persona lo hace dos veces o pulsa dos veces?"
+    looks_for: idempotencia y mensajes
+  - id: edge_permission
+    question: "¿Quién no debería poder hacerlo?"
+    looks_for: permisos y comportamiento al denegar
+  - id: data
+    question: "¿Qué datos se leen, qué se guardan y cuáles son personales?"
+    looks_for: inventario y plazo de conservación
+  - id: view
+    question: "¿Cómo debería verse? ¿Hay algo parecido que sirva de referencia?"
+    looks_for: expectativas visuales, no diseño cerrado
+  - id: copy
+    question: "¿Qué tiene que decir el texto, y en qué idiomas?"
+    looks_for: mensajes obligatorios y tono
+  - id: done
+    question: "¿Cómo comprobarías tú, en dos minutos, que está bien?"
+    looks_for: el criterio de aceptación en palabras del usuario
+  - id: out
+    question: "¿Qué se queda fuera de esta funcionalidad?"
+    looks_for: no-alcance explícito
+
+closing:
+  - "¿Qué me estoy dejando?"
+  - "¿Quién más debería opinar antes de construir esto?"
+  - "¿Qué parte de lo que hemos hablado no está escrita en ningún sitio?"
