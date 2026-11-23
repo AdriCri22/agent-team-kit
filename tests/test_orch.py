@@ -125,6 +125,11 @@ class Orch(unittest.TestCase):
         self.assertEqual(self.board()["tasks"], [])
         self.assertIn("quedan 0 tareas", self.board()["progress"])
 
+    def test_board_progress_appends(self) -> None:
+        result = self.run_orch("board", "progress", "--text", "Ola 34 abierta")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Ola 34 abierta", self.board()["progress"])
+
     def test_done_with_pending_signatures_fails(self) -> None:
         self.add()
         result = self.run_orch("board", "done", "T-01", "--pr", "https://pr/1")

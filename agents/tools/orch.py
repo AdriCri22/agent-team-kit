@@ -377,6 +377,21 @@ def cmd_board_done(args) -> int:
     return 0
 
 
+def cmd_board_progress(args) -> int:
+    root = product_root(args.root)
+    path = board_path(root, args.board)
+    board = read_board(path)
+    text = sys.stdin.read().strip() if args.text == "-" else args.text
+    if not text:
+        raise SystemExit("falta el texto del progreso")
+    append_progress(board, text)
+    if args.date:
+        board["updated_at"] = args.date
+    write_board(path, board)
+    print("progreso añadido")
+    return 0
+
+
 def cmd_board_remove(args) -> int:
     root = product_root(args.root)
     path = board_path(root, args.board)
@@ -841,6 +856,12 @@ def build_parser() -> argparse.ArgumentParser:
     remove.add_argument("--progress", default=None)
     remove.add_argument("--date", default=None)
     remove.set_defaults(handler=cmd_board_remove)
+
+    progress = board_sub.add_parser("progress")
+    add_common(progress)
+    progress.add_argument("--text", required=True, help="texto; '-' para leer de stdin")
+    progress.add_argument("--date", default=None)
+    progress.set_defaults(handler=cmd_board_progress)
 
     packet = subparsers.add_parser("packet", help="packets")
     packet_sub = packet.add_subparsers(dest="packet_command", required=True)
