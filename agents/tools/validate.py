@@ -74,26 +74,30 @@ def load_yaml(path: pathlib.Path):
         return None
 
 
-def run_product(product: pathlib.Path, board: str | None) -> int:
-    """Valida una instancia: el sistema que lleva dentro y su tablero.
+def run_product(product: pathlib.Path, board: str | None, system: pathlib.Path | None = None) -> int:
+    """Valida una instancia: el sistema de agentes y su tablero.
 
-    Se ejecuta con las herramientas del propio producto, para que `agents/` sea su ancla y no la
-    del repositorio de la plantilla.
+    `system` permite validar un producto cuyo sistema vive en un subdirectorio (por ejemplo,
+    `agent-team-kit`) en vez de en su raíz. Se ejecuta con las herramientas del sistema, para que
+    `agents/` sea su ancla y no la del producto.
     """
     if not product.is_dir():
         print(f"no encuentro el producto '{product}'", file=sys.stderr)
         return 2
 
-    tools = product / "agents" / "tools"
+    tools = (system or product) / "agents" / "tools"
     for tool in ("validate.py", "board.py"):
         if not (tools / tool).is_file():
             print(
-                f"el producto no contiene agents/tools/{tool}: copia el sistema en su raíz",
+                f"no encuentro {tools / tool}: copia el sistema en la raíz del producto "
+                "o indica su ruta con --system <ruta>",
                 file=sys.stderr,
             )
             return 2
 
-    board_path = pathlib.Path(board) if board else pathlib.Path("backlog.json")
+    board_path = pathlib.Path(board) if board else pathlib.Path(
+        "board.json" if (product / "board.json").is_file() else "backlog.json"
+    )
     if not board_path.is_absolute():
         board_path = product / board_path
     if not board_path.is_file():
@@ -101,9 +105,9 @@ def run_product(product: pathlib.Path, board: str | None) -> int:
         return 2
 
     env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
-    system = subprocess.run(
+    system_run = subprocess.run(
         [sys.executable, str(tools / "validate.py")],
-        cwd=str(product),
+        cwd=str((system or product).resolve()),
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -122,7 +126,7 @@ def run_product(product: pathlib.Path, board: str | None) -> int:
 
     failed = False
     print(f"producto · {product}")
-    for label, result in (("sistema", system), ("tablero", board_run)):
+    for label, result in (("sistema", system_run), ("tablero", board_run)):
         if result.returncode == 0:
             first = result.stdout.strip().splitlines()
             print(f"  {label} · {first[0] if first else 'OK'}")
@@ -139,9 +143,18 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--product", default=None, help="valida una instancia: sistema y tablero")
 parser.add_argument("--board", default=None, help="tablero del producto (por defecto <producto>/backlog.json)")
+parser.add_argument(
+    "--system",
+    default=None,
+    help="raíz del sistema de agentes (por defecto, la de este fichero o la del producto)",
+)
 ARGS = parser.parse_args()
+if ARGS.system:
+    ROOT = pathlib.Path(ARGS.system).resolve()
+    ROLES = ROOT / "agents" / "roles"
+    CARDS = ROOT / "agents" / "cards"
 if ARGS.product:
-    sys.exit(run_product(pathlib.Path(ARGS.product), ARGS.board))
+    sys.exit(run_product(pathlib.Path(ARGS.product), ARGS.board, ROOT if ARGS.system else None))
 
 
 # 1. Todos los YAML parsean.

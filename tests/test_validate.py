@@ -170,7 +170,7 @@ class Validate(unittest.TestCase):
 
         result = self.run_product(empty)
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertIn("copia el sistema en su raíz", result.stderr)
+        self.assertIn("copia el sistema en la raíz", result.stderr)
 
     def test_product_mode_requires_a_board(self) -> None:
         result = self.run_product()
