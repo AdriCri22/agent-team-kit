@@ -12,9 +12,10 @@ prompt: |
   1. agents/cards/<ROL>.yaml
   2. memory/<ROL>.yaml
   3. agents/policy/delivery.yaml
-  4. specs/<FEATURE>.spec.yaml
-  5. <ficha de la tarea>
-  6. <ticket>, si existe
+  4. agents/policy/engineering.yaml (cómo escribir el código)
+  5. specs/<FEATURE>.spec.yaml
+  6. <ficha de la tarea>
+  7. <ticket>, si existe
 
   No leas fuera del packet:
   allowed: <rutas permitidas>
@@ -26,6 +27,8 @@ prompt: |
   - Write set exacto que vas a tocar.
   - Qué criterio de aceptación de la especificación vas a satisfacer.
   - Dependencias que necesitas y si están cerradas.
+  - Qué ya existe y vas a reutilizar, y qué no vas a hacer porque ningún criterio lo pide.
+  - La primera prueba que vas a escribir y por qué debe fallar.
   - Plan de cinco pasos como máximo.
   - Riesgo principal y cómo lo vas a comprobar.
 
@@ -38,6 +41,8 @@ prompt: |
     agents/policy/delivery.yaml#when_unsure, con la opción que crees correcta y el motivo.
   - Si la especificación no responde una duda, para y pídeselo a spec-owner.
   - Si encuentras un defecto, abre un ticket; no lo arregles dentro de esta tarea.
+  - Escribe el código según engineering.yaml: prueba primero, cambio mínimo completo, sin
+    abstracciones ni extras. Tras dos arreglos fallidos en el mismo gate, aplica when_stuck.
   - Ejecuta los gates y guarda el resultado.
   - Al cerrar cada intercambio, registra el hito: `session.py record --role <rol> --event turn`.
   - Antes de terminar, reescribe `memory/<ROL>.yaml` con poda: se queda lo vigente, se va lo que
@@ -45,7 +50,8 @@ prompt: |
 
   Al terminar devuelve, como máximo treinta líneas: qué cambió y por qué, archivos
   tocados, gates con su resultado, qué queda fuera y el bloque de handoff de
-  agents/policy/delivery.yaml.
+  agents/policy/delivery.yaml. Las dos últimas líneas son «Omitido:» y «Riesgo:»
+  (engineering.yaml#closing_lines).
 
 common_mistakes:
   - error: leer medio repositorio por contexto
@@ -60,3 +66,11 @@ common_mistakes:
     fix: parar y pedir aclaración a spec-owner
   - error: rellenar un hueco con una suposición razonable
     fix: preguntar; una pregunta cuesta menos que una entrega equivocada
+  - error: añadir opciones, capas o código «para luego»
+    fix: el cambio mínimo que cumple el criterio (engineering.yaml#smallest_complete_change)
+  - error: escribir el código y luego una prueba que ya pasa
+    fix: prueba primero y verla fallar por el motivo esperado
+  - error: tercer y cuarto intento del mismo arreglo
+    fix: parar y revisar la premisa (engineering.yaml#when_stuck)
+  - error: silenciar el compilador o el linter para que pase el gate
+    fix: arreglar el tipo o partir la función

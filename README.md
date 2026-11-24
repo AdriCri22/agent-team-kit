@@ -16,6 +16,7 @@ agents/
   registry.json        índice máquina: roles, capas, a quién reportan
   permissions.json     matriz de lectura y escritura por rol y categoría
   policy/delivery.yaml contrato de entrega que todo worker cumple, incluido qué hacer si duda
+  policy/engineering.yaml cómo escribe código un worker: prueba primero, cambio mínimo, qué no se recorta
   policy/sessions.yaml cuándo reutilizar una sesión y cómo evitar que el contexto se pudra
   policy/providers.yaml ventana del modelo, coste por turno y topes de sesión: sustituible
   policy/measurement.yaml de dónde salen los datos, sin telemetría del IDE ni del modelo

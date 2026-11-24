@@ -1,0 +1,74 @@
+# Práctica de ingeniería del worker.
+# Adaptada de dos fuentes: "lazy senior dev" de ponytail (DietrichGebert/ponytail, AGENTS.md)
+# y los principios reducidos de ub-mode (unclebob/ub-mode, SKILL.md).
+# Está escrita para modelos pequeños: reglas cortas, en orden y comprobables. Si choca con la
+# especificación, el packet o delivery.yaml, mandan ellos.
+
+id: engineering-practice
+version: 1
+
+# Cada cambio pasa por tres fases, en este orden. No saltes a la siguiente con la anterior a medias.
+order: [make_it_work, make_it_right, practice]
+
+before_code:
+  - "Lee la ficha y solo el código que toca. Busca con grep; no leas archivos enteros."
+  - "Lista todo lo que el cambio debe alcanzar: llamadas, pruebas, fixtures, configuración y exports. Lo que falte de esa lista es un bug, no un extra."
+  - "Decide primero la forma de los datos (tipos, columnas, JSON). La lógica viene después."
+  - "Antes de arreglar una función, busca con grep todas sus llamadas."
+
+# Elige la primera opción que resuelva el criterio por completo. Mira en este orden.
+smallest_complete_change:
+  - "1. ¿Hace falta? Lo que no pide un criterio no se hace. Nombra cada cosa omitida en una línea del PR."
+  - "2. ¿Ya existe en el código (helper, patrón, componente)? Reutilízalo como lo usa el código de al lado."
+  - "3. ¿Lo da la plataforma o la librería estándar? Úsalo, salvo que el proyecto tenga su equivalente."
+  - "4. ¿Lo da una dependencia ya instalada? Úsala. Nunca añadas una dependencia por unas pocas líneas."
+  - "5. ¿Cabe en una línea que se entiende a la primera? Hazlo así."
+  - "6. Si no, escribe el mínimo código que funcione."
+
+make_it_work:
+  - "Prueba primero. Escribe la prueba que falla, ejecútala y comprueba que falla por el motivo esperado. Después haz el cambio más pequeño que la pase."
+  - "Si una prueba honesta no es práctica, no escribas una mala: dilo en el PR."
+  - "Resta antes de sumar: si puedes borrar complejidad, bórrala antes de añadir código."
+  - "Si el requisito no encaja en el diseño actual, no lo pegues encima: piensa cómo sería si hubiera existido desde el principio y llega a eso por pasos."
+  - "Valida los datos al entrar (petición, formulario, base de datos externa) y confía en ellos dentro. La lógica de negocio va en funciones puras."
+  - "Que los estados ilegales no se puedan escribir: tipos estrechos, uniones, CHECK en SQL. Nunca silencies al compilador (as any, @ts-ignore, eslint-disable) para salir del paso."
+  - "Operaciones idempotentes: repetirlas, o reintentarlas tras un fallo a medias, deja el mismo estado."
+  - "Un solo escritor por dato compartido. Si dos procesos escriben lo mismo, la regla va en la propia escritura atómica."
+
+make_it_right:
+  - "Arregla la causa, no el síntoma. Reproduce el fallo con una prueba; un guard que solo oculta el error no es un arreglo."
+  - "Prueba el comportamiento, no la implementación: llama al código como lo hace su usuario y comprueba lo que ese usuario ve. Si la prueba pasaría aunque la función devolviera vacío, no sirve: cámbiala."
+  - "Funciones pequeñas y planas: complejidad ciclomática 10 como máximo, 4 niveles de anidación y 4 parámetros. Si te pasas, parte la función o simplifica las ramas."
+  - "No dupliques: si copias un bloque de más de cinco líneas, extráelo o reutiliza el que ya existe."
+  - "Refactorizar: fija el comportamiento con pruebas, cambia la estructura y demuestra con las mismas pruebas que no cambió nada. Nunca refactorices y cambies comportamiento en el mismo commit."
+  - "Sin abstracciones, envoltorios, opciones, configuración ni código «para luego». Respeta las capas y convenciones que ya hay."
+  - "El diff más corto gana, una vez cubierto todo lo que debe tocar. Un truco que hay que descifrar no cuenta como corto."
+  - "Comentarios solo para el porqué que el código no muestra, en una línea."
+  - "Atajo consciente: comentario literal `shortcut: <límite>, <cuándo mejorarlo>`."
+
+# Nunca se recortan, aunque alarguen el diff.
+never_cut:
+  - "Validación en los límites de confianza."
+  - "Manejo de errores que evita perder datos."
+  - "Seguridad y permisos."
+  - "Accesibilidad."
+  - "Lo que pide un criterio de aceptación."
+  - "El manejo de errores y la validación del código que mueves o fusionas."
+
+# Contra los bucles: el error más caro de un modelo pequeño.
+when_stuck:
+  - "Dos intentos de arreglo fallan en el mismo gate: para. No hay tercer intento todavía."
+  - "Escribe en una frase la premisa que comparten los dos intentos y comprueba si es falsa: lee el error completo, el dato real y la llamada real."
+  - "Si la premisa era falsa, corrige eso. Si no sabes cuál es, para y pregunta según delivery.yaml#when_unsure con lo que ya probaste."
+  - "Si una tarea repetitiva no es obvia de un vistazo, haz una unidad a mano y luego automatiza el resto con un script, comprobando que coincide con la primera."
+
+practice:
+  - "Unidades pequeñas y comprobadas: termina y verifica una antes de empezar la siguiente."
+  - "Commits pequeños y ordenados. Cada uno dice por qué, qué cambió y cómo se probó."
+  - "Lleva un registro breve de acciones y motivos; va resumido en el handoff."
+  - "Contexto pequeño: no vuelques archivos ni salidas largas; quédate con el resumen."
+
+# Las dos últimas líneas de cada entrega, siempre.
+closing_lines:
+  - "Omitido: lo que no hiciste o no comprobaste, o «nada»."
+  - "Riesgo: lo que el revisor debe mirar, o «ninguno conocido»."
