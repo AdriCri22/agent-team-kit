@@ -88,6 +88,58 @@ class Orch(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    # --- ready ------------------------------------------------------------
+
+    def _ready_board(self, tasks: list[dict]) -> None:
+        board = self.board()
+        board["tasks"] = tasks
+        (self.product / "board.json").write_text(json.dumps(board), encoding="utf-8")
+        for task in tasks:
+            (self.product / "packets" / f"{task['task']}.json").write_text("{}", encoding="utf-8")
+            ficha = self.product / "docs" / "planning" / "tasks" / f"{task['task']}.yaml"
+            if not ficha.exists():
+                ficha.write_text(yaml.safe_dump({"task": task["task"]}), encoding="utf-8")
+
+    def _task(self, task_id: str, owner: str, status: str = "todo", deps: list[str] | None = None) -> dict:
+        return {"task": task_id, "title": task_id, "spec": "specs/f.spec.yaml", "owner": owner, "status": status,
+                "wave": 1, "deps": deps or [], "packet": f"packets/{task_id}.json"}
+
+    def test_ready_lists_admissible_tasks_without_lots(self) -> None:
+        self._ready_board([self._task("A-01", "backend-engineer"), self._task("A-02", "backend-engineer", deps=["A-01"])])
+        result = self.run_orch("ready", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = {row["task"]: row for row in json.loads(result.stdout)["tasks"]}
+        self.assertTrue(rows["A-01"]["ready"])
+        self.assertFalse(rows["A-02"]["ready"])
+        self.assertIn("espera a A-01 (todo)", rows["A-02"]["blockers"])
+
+    def test_ready_treats_retired_dependencies_as_closed_and_flags_unapproved_specs(self) -> None:
+        self._ready_board([self._task("B-01", "backend-engineer", deps=["RETIRADA"])])
+        rows = json.loads(self.run_orch("ready", "--json").stdout)["tasks"]
+        self.assertTrue(rows[0]["ready"])
+        (self.product / "specs" / "f.spec.yaml").write_text(yaml.safe_dump({"status": "draft"}), encoding="utf-8")
+        rows = json.loads(self.run_orch("ready", "--json").stdout)["tasks"]
+        self.assertIn("specs/f.spec.yaml sin aprobar", rows[0]["blockers"])
+
+    def test_ready_reports_next_lot_per_lane_and_pairs_do_not_block(self) -> None:
+        self._ready_board([
+            self._task("P-01", "backend-engineer"), self._task("P-02", "backend-engineer", deps=["P-01"]),
+            self._task("F-01", "frontend-engineer", status="in_progress"),
+            self._task("Q-01", "qa-automation", deps=["F-01"]),
+            self._task("P-03", "backend-engineer", deps=["F-01"]),
+        ])
+        lots = {"lanes": {
+            "backend": [{"id": "L-B1", "title": "b", "tasks": ["P-01", "P-02"]}, {"id": "L-B2", "title": "b2", "tasks": ["P-03"]}],
+            "frontend": [{"id": "L-F1", "title": "f", "tasks": ["F-01"], "pair_with": "L-Q1"}],
+            "qa": [{"id": "L-Q1", "title": "q", "tasks": ["Q-01"]}],
+        }}
+        (self.product / "docs" / "planning" / "lots.yaml").write_text(yaml.safe_dump(lots), encoding="utf-8")
+        lanes = json.loads(self.run_orch("ready", "--json").stdout)["lanes"]
+        self.assertEqual((lanes["backend"]["lot"], lanes["backend"]["state"]), ("L-B1", "listo"))
+        self.assertEqual(lanes["frontend"]["state"], "en curso")
+        self.assertEqual(lanes["qa"]["state"], "listo")
+        self.assertEqual(lanes["qa"]["pair_with"], ["L-F1"])
+
     # --- tablero ----------------------------------------------------------
 
     def test_add_keeps_the_board_format(self) -> None:
