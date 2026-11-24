@@ -11,6 +11,7 @@ Uso:
   python3 agents/tools/orch.py --root <producto> packet new CAP-08
   python3 agents/tools/orch.py --root <producto> tickets list --open
   python3 agents/tools/orch.py --root <producto> gates CAP-08
+  python3 agents/tools/orch.py --root <producto> ready [--lots docs/planning/lots.yaml]
   python3 agents/tools/orch.py --root <producto> worktree add CAP-08 --branch feat/cap-08 --node-modules
 
 Códigos: 0 = bien, 1 = comprobación fallida, 2 = error de uso.
@@ -819,6 +820,138 @@ def cmd_close_task(args) -> int:
 # --------------------------------------------------------------------------- CLI
 
 
+
+# --------------------------------------------------------------------------- ready
+
+SPEC_APPROVED = {"approved", "building", "released"}
+
+
+def _spec_ok(root: pathlib.Path, raw: str | None, cache: dict) -> str | None:
+    if not raw:
+        return "sin especificación"
+    if raw in cache:
+        return cache[raw]
+    path = root / raw
+    problem = None
+    if not path.is_file():
+        problem = f"no existe {raw}"
+    else:
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            data = {}
+        if data.get("status") not in SPEC_APPROVED or not data.get("approved_by"):
+            problem = f"{raw} sin aprobar"
+    cache[raw] = problem
+    return problem
+
+
+def task_blockers(root: pathlib.Path, by_id: dict, task: dict, inside: set[str], cache: dict) -> list[str]:
+    """Motivos por los que una tarea no se puede lanzar ya. Vacío = admisible.
+
+    Una dependencia retirada del tablero cuenta como cerrada (así se retiran las tareas `done`).
+    `inside` son las tareas del mismo lote que van antes: no bloquean.
+    """
+    reasons: list[str] = []
+    for dep in task.get("deps") or []:
+        other = by_id.get(dep)
+        if other is not None and other.get("status") != "done" and dep not in inside:
+            reasons.append(f"espera a {dep} ({other.get('status')})")
+    problem = _spec_ok(root, task.get("spec"), cache)
+    if problem:
+        reasons.append(problem)
+    packet = task.get("packet")
+    if not packet or not (root / packet).is_file():
+        reasons.append("sin packet")
+    if not task_file(root, str(task.get("task"))).is_file():
+        reasons.append("sin ficha")
+    return reasons
+
+
+def cmd_ready(args) -> int:
+    """Qué se puede lanzar ahora. Con un fichero de lotes, el siguiente lote de cada carril."""
+    root = product_root(args.root)
+    board = read_board(board_path(root, args.board))
+    tasks = board.get("tasks") or []
+    by_id = {str(task.get("task")): task for task in tasks}
+    cache: dict = {}
+    lots_path = pathlib.Path(args.lots) if args.lots else root / "docs" / "planning" / "lots.yaml"
+    if not lots_path.is_absolute():
+        lots_path = root / lots_path
+    report: dict = {"lanes": {}, "tasks": []}
+
+    if lots_path.is_file():
+        data = yaml.safe_load(lots_path.read_text(encoding="utf-8")) or {}
+        # Los lotes emparejados (`pair_with`) se trabajan en paralelo y se fusionan juntos:
+        # las tareas del par no bloquean.
+        lot_tasks: dict[str, list[str]] = {}
+        pairs: dict[str, set[str]] = {}
+        for lots in (data.get("lanes") or {}).values():
+            for lot in lots if isinstance(lots, list) else []:
+                if isinstance(lot, dict) and lot.get("id"):
+                    lot_tasks[lot["id"]] = list(lot.get("tasks") or [])
+                    if lot.get("pair_with"):
+                        pairs.setdefault(lot["id"], set()).add(lot["pair_with"])
+                        pairs.setdefault(lot["pair_with"], set()).add(lot["id"])
+        for lane, lots in (data.get("lanes") or {}).items():
+            if not isinstance(lots, list):
+                continue
+            for lot in lots:
+                if not isinstance(lot, dict):
+                    continue
+                pending = [t for t in lot.get("tasks") or [] if t in by_id and by_id[t].get("status") != "done"]
+                if not pending:
+                    continue
+                active = [t for t in pending if by_id[t].get("status") in {"in_progress", "review"}]
+                blockers: dict[str, list[str]] = {}
+                inside: set[str] = {t for other in pairs.get(lot.get("id"), set()) for t in lot_tasks.get(other, [])}
+                for t in lot.get("tasks") or []:
+                    if t in by_id and by_id[t].get("status") == "todo":
+                        reasons = task_blockers(root, by_id, by_id[t], inside, cache)
+                        if reasons:
+                            blockers[t] = reasons
+                    inside.add(t)
+                if any(by_id[t].get("status") == "blocked" for t in pending):
+                    state = "bloqueado"
+                elif active:
+                    state = "en curso"
+                elif blockers:
+                    state = "espera"
+                else:
+                    state = "listo"
+                report["lanes"][lane] = {"lot": lot.get("id"), "title": lot.get("title"), "state": state,
+                                         "tasks": pending, "active": active, "blockers": blockers,
+                                         "pair_with": sorted(pairs.get(lot.get("id"), set()))}
+                break
+    else:
+        for task in tasks:
+            if task.get("status") != "todo":
+                continue
+            reasons = task_blockers(root, by_id, task, set(), cache)
+            report["tasks"].append({"task": task.get("task"), "owner": task.get("owner"), "ready": not reasons, "blockers": reasons})
+
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=1))
+        return 0
+    if report["lanes"]:
+        for lane, info in report["lanes"].items():
+            print(f"{lane:<9} {info['lot']:<6} {info['state']:<10} {info['title']}")
+            print(f"          tareas: {', '.join(info['tasks'])}")
+            if info["pair_with"]:
+                print(f"          en paralelo con: {', '.join(info['pair_with'])} (se fusionan juntos)")
+            for t, reasons in info["blockers"].items():
+                print(f"          {t}: {'; '.join(reasons)}")
+        ready = [lane for lane, info in report["lanes"].items() if info["state"] == "listo"]
+        print(f"{len(ready)} carril(es) con lote listo para lanzar")
+        return 0
+    ready = [t for t in report["tasks"] if t["ready"]]
+    for entry in report["tasks"]:
+        mark = "listo" if entry["ready"] else "; ".join(entry["blockers"])
+        print(f"{entry['task']:<12} {str(entry['owner']):<22} {mark}")
+    print(f"{len(ready)} tarea(s) admisibles")
+    return 0
+
+
 def add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--root", default=argparse.SUPPRESS, help="raíz del producto (por defecto, el cwd)"
@@ -1006,6 +1139,12 @@ def build_parser() -> argparse.ArgumentParser:
     worktree_list = worktree_sub.add_parser("list")
     worktree_list.add_argument("--root", default=argparse.SUPPRESS)
     worktree_list.set_defaults(handler=cmd_worktree_list)
+
+    ready = subparsers.add_parser("ready", help="qué lote o tarea se puede lanzar ya")
+    add_common(ready)
+    ready.add_argument("--lots", default=None, help="fichero de lotes (por defecto docs/planning/lots.yaml si existe)")
+    ready.add_argument("--json", action="store_true")
+    ready.set_defaults(handler=cmd_ready)
 
     close_task = subparsers.add_parser("close-task", help="verify, firmas, done, session close y retirada")
     close_task.add_argument("task")
