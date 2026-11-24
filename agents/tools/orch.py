@@ -626,6 +626,44 @@ def worktree_path(root: pathlib.Path, task_id: str, raw: str | None) -> pathlib.
     return pathlib.Path(raw) if raw else root / ".orchestrator" / "worktrees" / task_id
 
 
+def is_link(path: pathlib.Path) -> bool:
+    """Symlink o junction (Windows): no se debe borrar su contenido con el árbol."""
+    if path.is_symlink():
+        return True
+    checker = getattr(path, "is_junction", None)
+    if callable(checker):
+        try:
+            return bool(checker())
+        except OSError:
+            return False
+    return False
+
+
+def unlink_link(path: pathlib.Path) -> bool:
+    """Quita el enlace sin recorrer su destino. Devuelve True si lo hizo."""
+    if not is_link(path):
+        return False
+    if os.name == "nt":
+        result = subprocess.run(
+            ["cmd", "/c", "rmdir", str(path)], capture_output=True, text=True
+        )
+        return result.returncode == 0
+    try:
+        path.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def remove_links(root: pathlib.Path) -> int:
+    """Desenlaza node_modules del worktree antes de borrarlo. No sigue el destino."""
+    removed = 0
+    for candidate in sorted(root.rglob("node_modules"), reverse=True):
+        if unlink_link(candidate):
+            removed += 1
+    return removed
+
+
 def cmd_worktree_add(args) -> int:
     root = product_root(args.root)
     target = worktree_path(root, args.task, args.path)
@@ -661,6 +699,10 @@ def cmd_worktree_add(args) -> int:
                 )
             state = "ok" if created.returncode == 0 else "falló"
             print(f"  node_modules {source.relative_to(root)}: {state}")
+        print(
+            "  AVISO: no uses `gh pr merge --delete-branch` con este worktree; "
+            "retíralo antes con `orch worktree remove <tarea>`."
+        )
     print("  recuerda: los puertos 8787/8788 no se comparten; ejecuta una suite e2e a la vez.")
     return 0
 
@@ -668,9 +710,18 @@ def cmd_worktree_add(args) -> int:
 def cmd_worktree_remove(args) -> int:
     root = product_root(args.root)
     target = worktree_path(root, args.task, args.path)
+    if target.exists():
+        links = remove_links(target)
+        if links:
+            print(f"desenlazados {links} node_modules (sin tocar el árbol principal)")
     result = run_git(root, "worktree", "remove", str(target), "--force")
     if result.returncode != 0:
         print(result.stdout + result.stderr, file=sys.stderr)
+        print(
+            "si el directorio sigue existiendo y contiene node_modules enlazados, "
+            "quita los enlaces y vuelve a intentarlo; no borres el worktree a mano con /S.",
+            file=sys.stderr,
+        )
         return 1
     run_git(root, "worktree", "prune")
     print(f"worktree retirado: {target}")
@@ -940,8 +991,8 @@ def build_parser() -> argparse.ArgumentParser:
     worktree_add.add_argument("--base", default="main")
     worktree_add.add_argument("--path", default=None)
     worktree_add.add_argument(
-        "--node-modules", dest="node_modules", action="store_true", default=True,
-        help="enlaza node_modules del árbol principal (por defecto)",
+        "--node-modules", dest="node_modules", action="store_true", default=False,
+        help="enlaza node_modules del árbol principal (opt-in; retira con orch worktree remove)",
     )
     worktree_add.add_argument("--no-node-modules", dest="node_modules", action="store_false")
     worktree_add.set_defaults(handler=cmd_worktree_add)

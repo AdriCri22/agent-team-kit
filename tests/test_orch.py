@@ -18,6 +18,12 @@ import yaml
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ORCH = ROOT / "agents" / "tools" / "orch.py"
 
+import importlib.util
+
+_SPEC = importlib.util.spec_from_file_location("orch_tool", ORCH)
+orch = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(orch)
+
 
 class Orch(unittest.TestCase):
     def setUp(self) -> None:
@@ -176,6 +182,14 @@ class Orch(unittest.TestCase):
         result = self.run_orch("gates", "T-01")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("1/1 gates en verde", result.stdout)
+
+    def test_remove_links_never_deletes_a_real_directory(self) -> None:
+        real = self.product / "node_modules"
+        real.mkdir()
+        (real / "paquete.txt").write_text("x", encoding="utf-8")
+        removed = orch.remove_links(self.product)
+        self.assertEqual(removed, 0)
+        self.assertTrue((real / "paquete.txt").is_file())
 
 
 if __name__ == "__main__":
