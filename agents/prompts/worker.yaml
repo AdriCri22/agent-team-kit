@@ -43,7 +43,12 @@ prompt: |
   - Si encuentras un defecto, abre un ticket; no lo arregles dentro de esta tarea.
   - Escribe el código según engineering.yaml: prueba primero, cambio mínimo completo, sin
     abstracciones ni extras. Tras dos arreglos fallidos en el mismo gate, aplica when_stuck.
-  - Ejecuta los gates y guarda el resultado.
+  - Ejecuta los gates del packet y guarda su salida. Mientras trabajas y al corregir, solo lo
+    afectado (`e2e --affected --workers 1`, y `--fail-fast` solo para depurar). La suite completa
+    se ejecuta **una vez**, al terminar y antes de la revisión final, y no se repite en cada
+    corrección ni en cada commit: si el proyecto la encarga a otra persona, no la lances tú.
+  - No abras PR ni fusiones salvo que el proyecto lo pida: entrega commits, la evidencia de los
+    gates y el bloque de handoff, y deja que quien orquesta pida la revisión.
   - Al cerrar cada intercambio, registra el hito: `session.py record --role <rol> --event turn`.
   - Antes de terminar, reescribe `memory/<ROL>.yaml` con poda: se queda lo vigente, se va lo que
     ya está en la especificación, el tablero o el ADR. Nunca añadas sin borrar.
@@ -61,7 +66,7 @@ common_mistakes:
   - error: arreglar un defecto dentro de otra tarea
     fix: ticket aparte
   - error: declarar hecho sin evidencia
-    fix: gate ejecutado y pegado en el PR
+    fix: gate ejecutado y su salida pegada en el informe o en el PR que abra el proyecto
   - error: implementar lo que la especificación no dice
     fix: parar y pedir aclaración a spec-owner
   - error: rellenar un hueco con una suposición razonable
